@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TimeZoneBuddy - Track Multiple Timezones & Find Meeting Overlaps</title>
+  <meta name="description"
+    content="A futuristic timezone tracker with smooth animations. Find perfect meeting times across different timezones.">
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌍</text></svg>">
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+  <!-- Background animation -->
+  <div class="bg-animation">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="container">
+      <div class="nav">
+        <div class="nav-left">
+          <!-- Left side - can add items here if needed -->
+        </div>
+
+        <div class="logo">
+          <div class="logo-icon">🌍</div>
+          <h1 class="logo-text">TimeZoneBuddy</h1>
+        </div>
+
+        <div class="nav-actions">
+          <button class="theme-toggle" id="themeToggle" title="Toggle Theme (T)">
+            <span class="theme-icon">🌙</span>
+          </button>
+          <button class="nav-item" id="aboutBtn">
+            <span class="nav-item-icon">ℹ️</span>
+            <span class="nav-item-text">About</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Controls -->
+  <section class="controls">
+    <div class="container">
+      <div class="controls-grid">
+        <div class="search-container">
+          <div class="search-wrapper">
+            <input type="text" id="citySearch" placeholder="Search cities to add..." class="search-input">
+            <div class="search-dropdown" id="searchDropdown"></div>
+          </div>
+        </div>
+
+        <div class="slider-container">
+          <label class="slider-label">
+            <span>Offset: <span id="offsetValue">0</span>h</span>
+            <input type="range" id="hourOffset" min="0" max="23" value="0" class="slider">
+          </label>
+        </div>
+
+        <button class="btn btn-secondary" id="copyLinkBtn" title="Copy Link (S)">
+          <span>🔗</span> Copy Link
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Timezone Grid -->
+  <main class="main">
+    <div class="container">
+      <div class="welcome-screen" id="welcomeScreen">
+        <div class="welcome-content">
+          <div class="welcome-icon">🌍</div>
+          <h2 class="welcome-title">Welcome to TimeZoneBuddy!</h2>
+          <p class="welcome-text">Add your favorite cities to track their time zones and find the perfect overlap for
+            meetings.</p>
+          <p class="welcome-hint">Use the search bar above to add cities, or press <kbd>A</kbd> to focus the search.</p>
+        </div>
+      </div>
+
+      <div class="timezone-grid" id="timezoneGrid"></div>
+
+      <div class="grid-info" id="gridInfo">
+        <p>💡 Drag cards to reorder • Green glow shows 9 AM - 6 PM overlap</p>
+        <p class="offset-info" id="offsetInfo" style="display: none;">⏰ Times shown with offset</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- About Modal -->
+  <div class="modal-overlay" id="aboutModal">
+    <div class="modal">
+      <div class="modal-content">
+        <div class="avatar-container">
+          <div class="avatar">
+            <img src="image.png" alt="TimeZoneBuddy Avatar" class="avatar-image">
+          </div>
+        </div>
+
+        <h2 class="modal-title">TimeZoneBuddy Creator</h2>
+        <p class="modal-subtitle">Full-Stack Developer & Time Zone Enthusiast</p>
+
+        <div class="bio">
+          <p>Built with ❤️ to solve the eternal struggle of coordinating across time zones.
+            This zero-backend app helps remote teams and global friends find the perfect
+            meeting time while respecting everyone's schedule. No data collection,
+            no servers - just pure client-side magic with shareable links!</p>
+        </div>
+
+        <div class="contact-links">
+          <a href="https://github.com/Rahul-Meena01" target="_blank" class="contact-btn" title="GitHub">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
+            </svg>
+          </a>
+          <a href="https://linkedin.com/in/rahul-meena-m3401" target="_blank" class="contact-btn" title="LinkedIn">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+            </svg>
+          </a>
+          <a href="mailto:rahulmeena3401@gmail.com" class="contact-btn" title="Email">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+              <polyline points="22,6 12,13 2,6"/>
+            </svg>
+          </a>
+        </div>
+
+        <div class="shortcuts">
+          <h3>Keyboard Shortcuts</h3>
+          <div class="shortcuts-grid">
+            <div class="shortcut">
+              <span>Add Zone</span>
+              <kbd>A</kbd>
+            </div>
+            <div class="shortcut">
+              <span>Toggle Theme</span>
+              <kbd>T</kbd>
+            </div>
+            <div class="shortcut">
+              <span>Copy Link</span>
+              <kbd>S</kbd>
+            </div>
+            <div class="shortcut">
+              <span>Close Modal</span>
+              <kbd>Esc</kbd>
+            </div>
+          </div>
+        </div>
+
+        <div class="version-info">
+          <p>v1.0.0 • Built with HTML, CSS & JavaScript</p>
+          <p>Zero backend • Privacy-first • Open source</p>
+        </div>
+
+        <button class="btn btn-primary btn-full" id="closeModal">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast notifications -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="data.js"></script>
+  <script src="script.js"></script>
+</body>
+
+</html>
