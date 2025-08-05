@@ -1,3 +1,0 @@
-<!-- Use this file to provide workspace-specific custom instructions to Copilot. For more details, visit https://code.visualstudio.com/docs/copilot/copilot-customization#_use-a-githubcopilotinstructionsmd-file -->
-
-This project is a zero-backend, single-page React web app (Vite + Tailwind CSS) for timezone scheduling. Use React Context for state, persist to localStorage and URL hash, and optimize for Lighthouse >90. UI features: draggable grid (SortableJS), live time/date/emoji, Add Zone dropdown, Copy Link, theme toggle, About modal with glass effect and animation, slider for hour offset, weather icons (OpenWeatherMap), and keyboard shortcuts (A, T, S, Esc).
