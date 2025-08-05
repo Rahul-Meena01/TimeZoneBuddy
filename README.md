@@ -1,6 +1,20 @@
 # TimeZoneBuddy 🌍
 
+![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=flat-square&logo=html5&logoColor=white)
+![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=flat-square&logo=css3&logoColor=white)
+![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=flat-square&logo=javascript&logoColor=black)
+![No Framework](https://img.shields.io/badge/No_Framework-00d4ff?style=flat-square)
+![MIT License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
+
 A zero-backend, single-page web app that helps you track multiple timezones, find meeting overlaps, and share schedules with shareable links. Built with **pure HTML, CSS, and JavaScript** for optimal performance and simplicity.
+
+## 🌐 Live Demo
+
+[![TimeZoneBuddy Live](https://img.shields.io/badge/🌍_TimeZoneBuddy-Live_Demo-00d4ff?style=for-the-badge&logo=github)](https://rahul-meena01.github.io/TimeZoneBuddy/)
+
+**🔗 [View TimeZoneBuddy Live](https://rahul-meena01.github.io/TimeZoneBuddy/)**
+
+Experience the futuristic timezone tracker in action! No installation required - just click and start exploring timezones around the world.
 
 ## ✨ Features
 
