@@ -1012,6 +1012,42 @@ kbd {
     50% { transform: translateY(-10px); }
 }
 
+/* Creator Name Styles */
+.creator-name {
+    text-align: center;
+    margin: var(--space-lg) 0;
+    position: relative;
+}
+
+.name-text {
+    font-size: 2.5rem;
+    font-weight: 900;
+    color: var(--primary-color);
+    text-align: center;
+    animation: nameGlow 2s ease-in-out infinite alternate;
+    position: relative;
+    display: inline-block;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    text-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+    /* Remove blur-causing properties */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+@keyframes nameGlow {
+    0% { 
+        transform: scale(1);
+        color: var(--primary-color);
+        text-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+    }
+    100% { 
+        transform: scale(1.02);
+        color: #00e6ff;
+        text-shadow: 0 0 15px rgba(0, 212, 255, 0.5);
+    }
+}
+
 .modal-title {
     font-size: 1.5rem;
     font-weight: 700;
@@ -1216,6 +1252,12 @@ kbd {
     
     .time {
         font-size: 1.5rem;
+    }
+    
+    /* Mobile Creator Name */
+    .name-text {
+        font-size: 2rem;
+        letter-spacing: 2px;
     }
 }
 
