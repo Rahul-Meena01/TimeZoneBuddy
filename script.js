@@ -3,29 +3,73 @@ class TimeZoneBuddy {
   constructor() {
     this.selectedZones = [];
     this.hourOffset = 0;
-    this.theme = "light";
+    this.theme = "dark";
     this.userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     this.currentTime = new Date();
     this.timeInterval = null;
+
+    // User tracking properties
+    this.userName = localStorage.getItem("timezoneBuddy-userName") || null;
+    this.sessionStart = new Date();
+    this.themeToggleCount =
+      parseInt(localStorage.getItem("timezoneBuddy-themeToggles")) || 0;
+    this.activityLog =
+      JSON.parse(localStorage.getItem("timezoneBuddy-activity")) || [];
 
     this.init();
   }
 
   init() {
     this.loadState();
+
+    // Check if user name exists, if not show name modal
+    if (!this.userName) {
+      this.showNameModal();
+    }
+
     this.setupEventListeners();
     this.setupKeyboardShortcuts();
     this.startTimeUpdates();
     this.initializeUserZone();
     this.updateDisplay();
 
-    // Auto-detect theme if not set
-    if (!localStorage.getItem("timezoneBuddy-theme")) {
-      this.autoDetectTheme();
-    }
+    // Always start in dark mode
+    this.theme = "dark";
+    this.applyTheme();
+
+    // Log session start
+    this.logActivity("Started session");
   }
 
   setupEventListeners() {
+    // Dashboard modal
+    document.getElementById("dashboardBtn").addEventListener("click", () => {
+      this.showDashboard();
+    });
+
+    document.getElementById("closeDashboard").addEventListener("click", () => {
+      this.hideDashboard();
+    });
+
+    document.getElementById("dashboardModal").addEventListener("click", (e) => {
+      if (e.target.id === "dashboardModal") {
+        this.hideDashboard();
+      }
+    });
+
+    // Name modal
+    document.getElementById("submitNameBtn").addEventListener("click", () => {
+      this.submitUserName();
+    });
+
+    document
+      .getElementById("userNameInput")
+      .addEventListener("keypress", (e) => {
+        if (e.key === "Enter") {
+          this.submitUserName();
+        }
+      });
+
     // Theme toggle
     document.getElementById("themeToggle").addEventListener("click", () => {
       this.toggleTheme();
@@ -196,14 +240,19 @@ class TimeZoneBuddy {
     this.saveState();
     this.updateDisplay();
     this.showToast(`Added ${timezone.city}`, "success");
+    this.logActivity(`Added city: ${timezone.city}`);
   }
 
   removeZone(zoneId) {
+    const zone = this.selectedZones.find((z) => z.id === zoneId);
     this.selectedZones = this.selectedZones.filter(
       (zone) => zone.id !== zoneId
     );
     this.saveState();
     this.updateDisplay();
+    if (zone) {
+      this.logActivity(`Removed city: ${zone.city}`);
+    }
   }
 
   setHourOffset(offset) {
@@ -224,8 +273,11 @@ class TimeZoneBuddy {
 
   toggleTheme() {
     this.theme = this.theme === "light" ? "dark" : "light";
+    this.themeToggleCount++;
+    localStorage.setItem("timezoneBuddy-themeToggles", this.themeToggleCount);
     this.applyTheme();
     this.saveState();
+    this.logActivity(`Toggled theme to ${this.theme}`);
   }
 
   applyTheme() {
@@ -632,6 +684,217 @@ class TimeZoneBuddy {
       offsetInfo.textContent = `⏰ Times shown with +${this.hourOffset}h offset`;
       offsetInfo.style.display = "block";
     }
+  }
+
+  // User tracking methods
+  showNameModal() {
+    document.getElementById("nameModal").classList.add("show");
+    document.body.style.overflow = "hidden";
+    document.getElementById("userNameInput").focus();
+  }
+
+  hideNameModal() {
+    document.getElementById("nameModal").classList.remove("show");
+    document.body.style.overflow = "";
+  }
+
+  submitUserName() {
+    const nameInput = document.getElementById("userNameInput");
+    const name = nameInput.value.trim();
+
+    if (name) {
+      this.userName = name;
+      localStorage.setItem("timezoneBuddy-userName", name);
+      this.hideNameModal();
+      this.logActivity(`User "${name}" started using TimeZoneBuddy`);
+      this.showToast(`Welcome, ${name}!`, "success");
+
+      // Add user to global visitor list
+      this.addVisitorToGlobalList(name);
+    } else {
+      this.showToast("Please enter your name", "error");
+    }
+  }
+
+  async addVisitorToGlobalList(name) {
+    // Store visitor in a simple JSON storage service
+    const visitorData = {
+      name: name,
+      timestamp: new Date().toISOString(),
+      date: new Date().toLocaleDateString(),
+    };
+
+    try {
+      // Get existing visitors
+      const existingVisitors = await this.getAllVisitors();
+
+      // Using jsonbin.io as a simple database (free service)
+      const response = await fetch(
+        "https://api.jsonbin.io/v3/b/68b67d20d0ea881f406efb25",
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Master-Key":
+              "$2a$10$tpB9YeKmeLsxg.0JDwOrJuR0nJtpX1hE7Vx2N5FPf1p2lPcija7Oa",
+          },
+          body: JSON.stringify({
+            visitors: [...existingVisitors, visitorData],
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to save to API");
+      }
+    } catch (error) {
+      console.log("Could not save visitor data:", error);
+      // Fallback to localStorage
+      this.saveVisitorLocally(visitorData);
+    }
+  }
+
+  saveVisitorLocally(visitorData) {
+    let localVisitors = JSON.parse(
+      localStorage.getItem("timezonebuddy-all-visitors") || "[]"
+    );
+    // Check if user already exists
+    if (!localVisitors.find((v) => v.name === visitorData.name)) {
+      localVisitors.push(visitorData);
+      localStorage.setItem(
+        "timezonebuddy-all-visitors",
+        JSON.stringify(localVisitors)
+      );
+    }
+  }
+
+  async getAllVisitors() {
+    try {
+      // Try to get from JSONBin API first
+      const response = await fetch(
+        "https://api.jsonbin.io/v3/b/68b67d20d0ea881f406efb25/latest",
+        {
+          method: "GET",
+          headers: {
+            "X-Master-Key":
+              "$2a$10$tpB9YeKmeLsxg.0JDwOrJuR0nJtpX1hE7Vx2N5FPf1p2lPcija7Oa",
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        return data.record.visitors || [];
+      }
+    } catch (error) {
+      console.log("Could not fetch from API, using localStorage:", error);
+    }
+
+    // Fallback to localStorage
+    return JSON.parse(
+      localStorage.getItem("timezonebuddy-all-visitors") || "[]"
+    );
+  }
+
+  showDashboard() {
+    this.updateDashboardData();
+    document.getElementById("dashboardModal").classList.add("show");
+    document.body.style.overflow = "hidden";
+    this.logActivity("Opened dashboard");
+  }
+
+  hideDashboard() {
+    document.getElementById("dashboardModal").classList.remove("show");
+    document.body.style.overflow = "";
+  }
+
+  updateDashboardData() {
+    const sessionMinutes = Math.floor(
+      (new Date() - this.sessionStart) / 1000 / 60
+    );
+
+    document.getElementById("currentUserName").textContent =
+      this.userName || "Unknown";
+    document.getElementById(
+      "sessionTime"
+    ).textContent = `${sessionMinutes} minutes`;
+    document.getElementById("citiesCount").textContent =
+      this.selectedZones.length;
+    document.getElementById("themeToggles").textContent = this.themeToggleCount;
+
+    this.updateActivityLog();
+    this.updateVisitorsList();
+  }
+
+  async updateVisitorsList() {
+    try {
+      const visitors = await this.getAllVisitors();
+      const visitorsList = document.getElementById("visitorsList");
+      const totalVisitorsElement = document.getElementById("totalVisitors");
+
+      if (visitors && visitors.length > 0) {
+        totalVisitorsElement.textContent = visitors.length;
+
+        visitorsList.innerHTML = visitors
+          .map(
+            (visitor) => `
+          <div class="visitor-item">
+            <span class="visitor-name">${visitor.name}</span>
+            <span class="visitor-time">${new Date(
+              visitor.timestamp
+            ).toLocaleDateString()}</span>
+          </div>
+        `
+          )
+          .join("");
+      } else {
+        totalVisitorsElement.textContent = "0";
+        visitorsList.innerHTML =
+          '<div class="visitor-item"><span class="visitor-name">No visitors yet</span></div>';
+      }
+    } catch (error) {
+      console.error("Error updating visitors list:", error);
+      document.getElementById("totalVisitors").textContent = "Error";
+      document.getElementById("visitorsList").innerHTML =
+        '<div class="visitor-item"><span class="visitor-name">Error loading visitors</span></div>';
+    }
+  }
+
+  updateActivityLog() {
+    const activityLog = document.getElementById("activityLog");
+    const recentActivities = this.activityLog.slice(-10).reverse();
+
+    if (recentActivities.length === 0) {
+      activityLog.innerHTML =
+        '<div class="activity-item">No activities yet</div>';
+    } else {
+      activityLog.innerHTML = recentActivities
+        .map(
+          (activity) =>
+            `<div class="activity-item">${activity.time} - ${activity.action}</div>`
+        )
+        .join("");
+    }
+  }
+
+  logActivity(action) {
+    const activity = {
+      time: new Date().toLocaleTimeString(),
+      action: action,
+      timestamp: new Date().toISOString(),
+    };
+
+    this.activityLog.push(activity);
+
+    // Keep only last 50 activities
+    if (this.activityLog.length > 50) {
+      this.activityLog = this.activityLog.slice(-50);
+    }
+
+    localStorage.setItem(
+      "timezoneBuddy-activity",
+      JSON.stringify(this.activityLog)
+    );
   }
 }
 
