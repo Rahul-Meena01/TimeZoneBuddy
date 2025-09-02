@@ -725,50 +725,49 @@ class TimeZoneBuddy {
       sessionId: Date.now() + '-' + Math.random().toString(36).substr(2, 9) // Unique session ID
     };
 
+    // Always save locally first (primary storage for now)
+    this.saveVisitorLocally(visitorData);
+
+    // Try API as secondary storage (if credentials are working)
     try {
-      // Get existing visitors
-      const existingVisitors = await this.getAllVisitors();
+      // Get existing visitors from localStorage (more reliable)
+      const existingVisitors = JSON.parse(
+        localStorage.getItem("timezonebuddy-all-visitors") || "[]"
+      );
       
-      // Check if this exact name+date combo already exists (to prevent duplicates on same day)
+      // Check if this exact name+date combo already exists
       const todaysDate = new Date().toLocaleDateString();
       const existsToday = existingVisitors.some(v => 
         v.name === name && v.date === todaysDate
       );
       
-      // If visitor doesn't exist today, add them
+      // If visitor doesn't exist today, try to save to API
       if (!existsToday) {
-        // Using jsonbin.io as a simple database (free service)
         const response = await fetch(
           "https://api.jsonbin.io/v3/b/68b67d20d0ea881f406efb25",
           {
             method: "PUT",
             headers: {
               "Content-Type": "application/json",
-              "X-Master-Key":
-                "$2a$10$tpB9YeKmeLsxg.0JDwOrJuR0nJtpX1hE7Vx2N5FPf1p2lPcija7Oa",
+              "X-Master-Key": "$2a$10$tpB9YeKmeLsxg.0JDwOrJuR0nJtpX1hE7Vx2N5FPf1p2lPcija7Oa",
+              "X-Bin-Meta": "false"
             },
             body: JSON.stringify({
-              visitors: [...existingVisitors, visitorData],
+              visitors: existingVisitors,
             }),
           }
         );
 
-        if (!response.ok) {
-          throw new Error("Failed to save to API");
+        if (response.ok) {
+          console.log("Visitor synced to API successfully");
+        } else {
+          const errorText = await response.text();
+          console.warn("API sync failed (using localStorage):", response.status, errorText);
         }
-        
-        console.log("Visitor saved to API successfully");
-      } else {
-        console.log("Visitor already exists for today, skipping API update");
       }
       
-      // Always save locally as backup
-      this.saveVisitorLocally(visitorData);
-      
     } catch (error) {
-      console.log("Could not save visitor data to API:", error);
-      // Fallback to localStorage
-      this.saveVisitorLocally(visitorData);
+      console.warn("API unavailable (using localStorage):", error.message);
     }
   }
 
@@ -795,16 +794,27 @@ class TimeZoneBuddy {
   }
 
   async getAllVisitors() {
+    // Primarily use localStorage (more reliable)
+    const localVisitors = JSON.parse(
+      localStorage.getItem("timezonebuddy-all-visitors") || "[]"
+    );
+    
+    // If we have local visitors, use them
+    if (localVisitors.length > 0) {
+      console.log("Using visitors from localStorage:", localVisitors);
+      return localVisitors;
+    }
+
+    // If no local visitors, try API as fallback
     try {
-      console.log("Trying to fetch from JSONBin API...");
-      // Try to get from JSONBin API first
+      console.log("No local visitors, trying JSONBin API...");
       const response = await fetch(
         "https://api.jsonbin.io/v3/b/68b67d20d0ea881f406efb25/latest",
         {
           method: "GET",
           headers: {
-            "X-Master-Key":
-              "$2a$10$tpB9YeKmeLsxg.0JDwOrJuR0nJtpX1hE7Vx2N5FPf1p2lPcija7Oa",
+            "X-Master-Key": "$2a$10$tpB9YeKmeLsxg.0JDwOrJuR0nJtpX1hE7Vx2N5FPf1p2lPcija7Oa",
+            "X-Bin-Meta": "false"
           },
         }
       );
@@ -812,22 +822,26 @@ class TimeZoneBuddy {
       if (response.ok) {
         const data = await response.json();
         console.log("API response data:", data);
-        const visitors = data.record.visitors || [];
+        const visitors = data.record?.visitors || data.visitors || [];
         console.log("Visitors from API:", visitors);
+        
+        // Save API data locally for future use
+        if (visitors.length > 0) {
+          localStorage.setItem("timezonebuddy-all-visitors", JSON.stringify(visitors));
+        }
+        
         return visitors;
       } else {
-        console.log("API response not ok:", response.status, response.statusText);
+        const errorText = await response.text();
+        console.log("API response not ok:", response.status, response.statusText, errorText);
       }
     } catch (error) {
-      console.log("Could not fetch from API, using localStorage:", error);
+      console.log("Could not fetch from API:", error);
     }
 
-    // Fallback to localStorage
-    const localVisitors = JSON.parse(
-      localStorage.getItem("timezonebuddy-all-visitors") || "[]"
-    );
-    console.log("Visitors from localStorage:", localVisitors);
-    return localVisitors;
+    // Return empty array if nothing works
+    console.log("No visitors found, returning empty array");
+    return [];
   }
 
   // Debug method to add test visitors
@@ -841,6 +855,46 @@ class TimeZoneBuddy {
     testVisitors.forEach(visitor => this.saveVisitorLocally(visitor));
     this.updateVisitorsList();
     console.log("Test visitors added!");
+  }
+
+  // Method to export visitor data
+  exportVisitorData() {
+    const visitors = JSON.parse(localStorage.getItem("timezonebuddy-all-visitors") || "[]");
+    const dataStr = JSON.stringify(visitors, null, 2);
+    const dataBlob = new Blob([dataStr], {type: 'application/json'});
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'timezonebuddy-visitors.json';
+    link.click();
+    URL.revokeObjectURL(url);
+    this.showToast("Visitor data exported!", "success");
+  }
+
+  // Method to import visitor data
+  importVisitorData(jsonData) {
+    try {
+      const importedVisitors = JSON.parse(jsonData);
+      const existingVisitors = JSON.parse(localStorage.getItem("timezonebuddy-all-visitors") || "[]");
+      
+      // Merge visitors, avoiding duplicates
+      const mergedVisitors = [...existingVisitors];
+      importedVisitors.forEach(visitor => {
+        const exists = mergedVisitors.some(v => 
+          v.name === visitor.name && v.timestamp === visitor.timestamp
+        );
+        if (!exists) {
+          mergedVisitors.push(visitor);
+        }
+      });
+      
+      localStorage.setItem("timezonebuddy-all-visitors", JSON.stringify(mergedVisitors));
+      this.updateVisitorsList();
+      this.showToast(`Imported ${importedVisitors.length} visitors!`, "success");
+    } catch (error) {
+      this.showToast("Error importing visitor data", "error");
+      console.error("Import error:", error);
+    }
   }
 
   showDashboard() {
