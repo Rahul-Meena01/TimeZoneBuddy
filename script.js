@@ -749,7 +749,7 @@ class TimeZoneBuddy {
             method: "PUT",
             headers: {
               "Content-Type": "application/json",
-              "X-Master-Key": "$2a$10$tpB9YeKmeLsxg.0JDwOrJuR0nJtpX1hE7Vx2N5FPf1p2lPcija7Oa",
+              "X-Master-Key": "$2a$10$.cuLTVY4J4LHwEUvUjzGHeyG.3dPb/77gfv4qBqFLYebmTrbSL/mK",
               "X-Bin-Meta": "false"
             },
             body: JSON.stringify({
@@ -813,7 +813,7 @@ class TimeZoneBuddy {
         {
           method: "GET",
           headers: {
-            "X-Master-Key": "$2a$10$tpB9YeKmeLsxg.0JDwOrJuR0nJtpX1hE7Vx2N5FPf1p2lPcija7Oa",
+            "X-Master-Key": "$2a$10$.cuLTVY4J4LHwEUvUjzGHeyG.3dPb/77gfv4qBqFLYebmTrbSL/mK",
             "X-Bin-Meta": "false"
           },
         }
