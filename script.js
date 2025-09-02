@@ -42,21 +42,6 @@ class TimeZoneBuddy {
   }
 
   setupEventListeners() {
-    // Dashboard modal
-    document.getElementById("dashboardBtn").addEventListener("click", () => {
-      this.showDashboard();
-    });
-
-    document.getElementById("closeDashboard").addEventListener("click", () => {
-      this.hideDashboard();
-    });
-
-    document.getElementById("dashboardModal").addEventListener("click", (e) => {
-      if (e.target.id === "dashboardModal") {
-        this.hideDashboard();
-      }
-    });
-
     // Name modal
     document.getElementById("submitNameBtn").addEventListener("click", () => {
       this.submitUserName();
@@ -853,7 +838,6 @@ class TimeZoneBuddy {
     ];
     
     testVisitors.forEach(visitor => this.saveVisitorLocally(visitor));
-    this.updateVisitorsList();
     console.log("Test visitors added!");
   }
 
@@ -889,102 +873,10 @@ class TimeZoneBuddy {
       });
       
       localStorage.setItem("timezonebuddy-all-visitors", JSON.stringify(mergedVisitors));
-      this.updateVisitorsList();
       this.showToast(`Imported ${importedVisitors.length} visitors!`, "success");
     } catch (error) {
       this.showToast("Error importing visitor data", "error");
       console.error("Import error:", error);
-    }
-  }
-
-  showDashboard() {
-    this.updateDashboardData();
-    document.getElementById("dashboardModal").classList.add("show");
-    document.body.style.overflow = "hidden";
-    this.logActivity("Opened dashboard");
-  }
-
-  hideDashboard() {
-    document.getElementById("dashboardModal").classList.remove("show");
-    document.body.style.overflow = "";
-  }
-
-  updateDashboardData() {
-    const sessionMinutes = Math.floor(
-      (new Date() - this.sessionStart) / 1000 / 60
-    );
-
-    document.getElementById("currentUserName").textContent =
-      this.userName || "Unknown";
-    document.getElementById(
-      "sessionTime"
-    ).textContent = `${sessionMinutes} minutes`;
-    document.getElementById("citiesCount").textContent =
-      this.selectedZones.length;
-    document.getElementById("themeToggles").textContent = this.themeToggleCount;
-
-    this.updateActivityLog();
-    this.updateVisitorsList();
-  }
-
-  async updateVisitorsList() {
-    try {
-      console.log("Fetching visitors list...");
-      const visitors = await this.getAllVisitors();
-      console.log("Retrieved visitors:", visitors);
-      
-      const visitorsList = document.getElementById("visitorsList");
-      const totalVisitorsElement = document.getElementById("totalVisitors");
-
-      if (visitors && visitors.length > 0) {
-        totalVisitorsElement.textContent = visitors.length;
-
-        // Sort visitors by timestamp (newest first)
-        const sortedVisitors = visitors.sort((a, b) => 
-          new Date(b.timestamp) - new Date(a.timestamp)
-        );
-
-        visitorsList.innerHTML = sortedVisitors
-          .map(
-            (visitor) => `
-          <div class="visitor-item">
-            <span class="visitor-name">${visitor.name}</span>
-            <span class="visitor-time">${new Date(
-              visitor.timestamp
-            ).toLocaleDateString()} ${new Date(
-              visitor.timestamp
-            ).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-          </div>
-        `
-          )
-          .join("");
-      } else {
-        totalVisitorsElement.textContent = "0";
-        visitorsList.innerHTML =
-          '<div class="visitor-item"><span class="visitor-name">No visitors yet</span></div>';
-      }
-    } catch (error) {
-      console.error("Error updating visitors list:", error);
-      document.getElementById("totalVisitors").textContent = "Error";
-      document.getElementById("visitorsList").innerHTML =
-        '<div class="visitor-item"><span class="visitor-name">Error loading visitors</span></div>';
-    }
-  }
-
-  updateActivityLog() {
-    const activityLog = document.getElementById("activityLog");
-    const recentActivities = this.activityLog.slice(-10).reverse();
-
-    if (recentActivities.length === 0) {
-      activityLog.innerHTML =
-        '<div class="activity-item">No activities yet</div>';
-    } else {
-      activityLog.innerHTML = recentActivities
-        .map(
-          (activity) =>
-            `<div class="activity-item">${activity.time} - ${activity.action}</div>`
-        )
-        .join("");
     }
   }
 
