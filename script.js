@@ -722,33 +722,51 @@ class TimeZoneBuddy {
       name: name,
       timestamp: new Date().toISOString(),
       date: new Date().toLocaleDateString(),
+      sessionId: Date.now() + '-' + Math.random().toString(36).substr(2, 9) // Unique session ID
     };
 
     try {
       // Get existing visitors
       const existingVisitors = await this.getAllVisitors();
-
-      // Using jsonbin.io as a simple database (free service)
-      const response = await fetch(
-        "https://api.jsonbin.io/v3/b/68b67d20d0ea881f406efb25",
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Master-Key":
-              "$2a$10$tpB9YeKmeLsxg.0JDwOrJuR0nJtpX1hE7Vx2N5FPf1p2lPcija7Oa",
-          },
-          body: JSON.stringify({
-            visitors: [...existingVisitors, visitorData],
-          }),
-        }
+      
+      // Check if this exact name+date combo already exists (to prevent duplicates on same day)
+      const todaysDate = new Date().toLocaleDateString();
+      const existsToday = existingVisitors.some(v => 
+        v.name === name && v.date === todaysDate
       );
+      
+      // If visitor doesn't exist today, add them
+      if (!existsToday) {
+        // Using jsonbin.io as a simple database (free service)
+        const response = await fetch(
+          "https://api.jsonbin.io/v3/b/68b67d20d0ea881f406efb25",
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              "X-Master-Key":
+                "$2a$10$tpB9YeKmeLsxg.0JDwOrJuR0nJtpX1hE7Vx2N5FPf1p2lPcija7Oa",
+            },
+            body: JSON.stringify({
+              visitors: [...existingVisitors, visitorData],
+            }),
+          }
+        );
 
-      if (!response.ok) {
-        throw new Error("Failed to save to API");
+        if (!response.ok) {
+          throw new Error("Failed to save to API");
+        }
+        
+        console.log("Visitor saved to API successfully");
+      } else {
+        console.log("Visitor already exists for today, skipping API update");
       }
+      
+      // Always save locally as backup
+      this.saveVisitorLocally(visitorData);
+      
     } catch (error) {
-      console.log("Could not save visitor data:", error);
+      console.log("Could not save visitor data to API:", error);
       // Fallback to localStorage
       this.saveVisitorLocally(visitorData);
     }
@@ -758,18 +776,27 @@ class TimeZoneBuddy {
     let localVisitors = JSON.parse(
       localStorage.getItem("timezonebuddy-all-visitors") || "[]"
     );
-    // Check if user already exists
-    if (!localVisitors.find((v) => v.name === visitorData.name)) {
+    
+    // Check if this exact name+date combo already exists locally
+    const existsLocally = localVisitors.some(v => 
+      v.name === visitorData.name && v.date === visitorData.date
+    );
+    
+    if (!existsLocally) {
       localVisitors.push(visitorData);
       localStorage.setItem(
         "timezonebuddy-all-visitors",
         JSON.stringify(localVisitors)
       );
+      console.log("Visitor saved locally:", visitorData.name);
+    } else {
+      console.log("Visitor already exists locally for today:", visitorData.name);
     }
   }
 
   async getAllVisitors() {
     try {
+      console.log("Trying to fetch from JSONBin API...");
       // Try to get from JSONBin API first
       const response = await fetch(
         "https://api.jsonbin.io/v3/b/68b67d20d0ea881f406efb25/latest",
@@ -784,16 +811,36 @@ class TimeZoneBuddy {
 
       if (response.ok) {
         const data = await response.json();
-        return data.record.visitors || [];
+        console.log("API response data:", data);
+        const visitors = data.record.visitors || [];
+        console.log("Visitors from API:", visitors);
+        return visitors;
+      } else {
+        console.log("API response not ok:", response.status, response.statusText);
       }
     } catch (error) {
       console.log("Could not fetch from API, using localStorage:", error);
     }
 
     // Fallback to localStorage
-    return JSON.parse(
+    const localVisitors = JSON.parse(
       localStorage.getItem("timezonebuddy-all-visitors") || "[]"
     );
+    console.log("Visitors from localStorage:", localVisitors);
+    return localVisitors;
+  }
+
+  // Debug method to add test visitors
+  addTestVisitors() {
+    const testVisitors = [
+      { name: "Alice", timestamp: new Date(Date.now() - 86400000).toISOString(), date: new Date(Date.now() - 86400000).toLocaleDateString(), sessionId: "test1" },
+      { name: "Bob", timestamp: new Date(Date.now() - 3600000).toISOString(), date: new Date().toLocaleDateString(), sessionId: "test2" },
+      { name: "Charlie", timestamp: new Date().toISOString(), date: new Date().toLocaleDateString(), sessionId: "test3" }
+    ];
+    
+    testVisitors.forEach(visitor => this.saveVisitorLocally(visitor));
+    this.updateVisitorsList();
+    console.log("Test visitors added!");
   }
 
   showDashboard() {
@@ -828,21 +875,31 @@ class TimeZoneBuddy {
 
   async updateVisitorsList() {
     try {
+      console.log("Fetching visitors list...");
       const visitors = await this.getAllVisitors();
+      console.log("Retrieved visitors:", visitors);
+      
       const visitorsList = document.getElementById("visitorsList");
       const totalVisitorsElement = document.getElementById("totalVisitors");
 
       if (visitors && visitors.length > 0) {
         totalVisitorsElement.textContent = visitors.length;
 
-        visitorsList.innerHTML = visitors
+        // Sort visitors by timestamp (newest first)
+        const sortedVisitors = visitors.sort((a, b) => 
+          new Date(b.timestamp) - new Date(a.timestamp)
+        );
+
+        visitorsList.innerHTML = sortedVisitors
           .map(
             (visitor) => `
           <div class="visitor-item">
             <span class="visitor-name">${visitor.name}</span>
             <span class="visitor-time">${new Date(
               visitor.timestamp
-            ).toLocaleDateString()}</span>
+            ).toLocaleDateString()} ${new Date(
+              visitor.timestamp
+            ).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
           </div>
         `
           )
